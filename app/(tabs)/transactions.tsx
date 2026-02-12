@@ -40,7 +40,9 @@ export default function TransactionsScreen() {
       const response = await transactionsService.getTransactions(filter);
       setTransactions(response.data);
     } catch (error: any) {
-      console.error(error);
+      if (error?.response?.status !== 401) {
+        console.error(error);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
