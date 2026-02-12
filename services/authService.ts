@@ -3,6 +3,7 @@ import {
     AuthResponse,
     LoginRequest,
     RegisterRequest,
+    UpdateUserProfileRequest,
     User,
 } from "@/types/auth";
 import { removeToken, setToken } from "@/utils/storage";
@@ -79,6 +80,20 @@ export const authService = {
       return responseData.data;
     }
     throw new Error(responseData.message || "Registration failed");
+  },
+
+  updateProfile: async (data: UpdateUserProfileRequest): Promise<User> => {
+    const response = await api.put<ApiResponse<User>>(
+      "/api/Auth/profile",
+      data,
+    );
+    const { data: responseData } = response;
+
+    if (responseData.success && responseData.data) {
+      await setUser(responseData.data);
+      return responseData.data;
+    }
+    throw new Error(responseData.message || "Profile update failed");
   },
 
   logout: async () => {

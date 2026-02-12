@@ -1,6 +1,11 @@
 import { setUnauthorizedCallback } from "@/services/api";
 import { authService } from "@/services/authService";
-import { LoginRequest, RegisterRequest, User } from "@/types/auth";
+import {
+  LoginRequest,
+  RegisterRequest,
+  UpdateUserProfileRequest,
+  User,
+} from "@/types/auth";
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
@@ -10,6 +15,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
+  updateProfile: (data: UpdateUserProfileRequest) => Promise<void>;
   logout: () => void;
 }
 
@@ -57,6 +63,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setUser(response.user);
   };
 
+  const updateProfile = async (data: UpdateUserProfileRequest) => {
+    const updatedUser = await authService.updateProfile(data);
+    setUser(updatedUser);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -65,6 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         isLoading,
         login,
         register,
+        updateProfile,
         logout,
       }}
     >

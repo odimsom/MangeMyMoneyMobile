@@ -54,13 +54,13 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Categories (or generic Settings/Menu) */}
+      {/* Settings */}
       <Tabs.Screen
-        name="explore"
+        name="settings"
         options={{
-          title: "More",
+          title: "Settings",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="line.3.horizontal" color={color} />
+            <IconSymbol size={28} name="gear" color={color} />
           ),
         }}
       />

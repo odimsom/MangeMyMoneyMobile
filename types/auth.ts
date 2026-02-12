@@ -21,6 +21,13 @@ export interface RegisterRequest {
   verificationUrl?: string; // Likely not used in mobile flow same way, but keeping for compatibility
 }
 
+export interface UpdateUserProfileRequest {
+  firstName: string;
+  lastName: string;
+  currency: string;
+  avatarUrl?: string; // Not typically used in direct updates unless URL is passed
+}
+
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;

@@ -1,12 +1,51 @@
-import { PaginatedResponse } from "@/types/common";
-import {
-    AccountSummary,
-    CategoryBreakdown,
-    DailySummary,
-    Expense,
-    FinancialSummary,
-} from "@/types/dashboard";
 import api from "./api";
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+export interface FinancialSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  netBalance: number;
+  currency: string;
+}
+
+export interface Expense {
+  id: string;
+  amount: number;
+  currency: string;
+  description: string;
+  date: string;
+  categoryName: string;
+  categoryColor?: string;
+  accountName: string;
+}
+
+export interface AccountSummary {
+  totalBalance: number;
+  currency: string;
+  activeAccountsCount: number;
+}
+
+export interface CategoryBreakdown {
+  categoryId: string;
+  categoryName: string;
+  categoryColor?: string;
+  percentage: number;
+  amount: number;
+}
+
+export interface DailySummary {
+  date: string;
+  amount: number;
+}
 
 const getFinancialSummary = async (fromDate: string, toDate: string) => {
   const response = await api.get<{ data: FinancialSummary }>(

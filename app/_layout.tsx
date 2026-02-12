@@ -1,7 +1,7 @@
 import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
+    DarkTheme,
+    DefaultTheme,
+    ThemeProvider,
 } from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -48,8 +48,15 @@ function RootLayoutNav() {
           name="modal"
           options={{
             presentation: "modal",
-            title: "Modal",
+            title: "New Transaction",
             headerShown: true,
+            headerStyle: {
+              backgroundColor: colorScheme === "dark" ? "#0f0f12" : "#fff",
+            },
+            headerTitleStyle: {
+              color: colorScheme === "dark" ? "#fff" : "#000",
+            },
+            headerTintColor: colorScheme === "dark" ? "#fff" : "#000",
           }}
         />
       </Stack>

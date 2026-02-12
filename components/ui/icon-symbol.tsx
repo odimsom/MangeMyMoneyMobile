@@ -23,6 +23,20 @@ const MAPPING = {
   "chevron.right": "chevron-right",
   "chart.pie.fill": "pie-chart",
   "banknote.fill": "attach-money",
+  plus: "add",
+  calendar: "calendar-today",
+  tag: "local-offer",
+  creditcard: "credit-card",
+  "pencil.and.outline": "edit",
+  trash: "delete",
+  checkmark: "check",
+  xmark: "close",
+  "arrow.right.arrow.left": "swap-horiz",
+  gear: "settings",
+  "moon.fill": "dark-mode",
+  magnifyingglass: "search",
+  "bag.fill": "shopping-bag",
+  "line.3.horizontal": "menu",
 } as IconMapping;
 
 /**

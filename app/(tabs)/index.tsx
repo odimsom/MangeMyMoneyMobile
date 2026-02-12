@@ -1,12 +1,28 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { Link } from "expo-router";
+import { useCallback, useState } from "react";
+import {
+    ActivityIndicator,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { GlassCard } from "@/components/ui/GlassCard";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { dashboardService } from "@/services/dashboardService";
-import { AccountSummary, Expense, FinancialSummary } from "@/types/dashboard";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+    AccountSummary,
+    Expense,
+    FinancialSummary,
+    dashboardService,
+} from "@/services/dashboardService";
 
 export default function DashboardScreen() {
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
@@ -14,11 +30,11 @@ export default function DashboardScreen() {
   const [recentTransactions, setRecentTransactions] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const colorScheme = useColorScheme() ?? "light";
 
   const loadData = async () => {
     try {
       const now = new Date();
-      // Simple start/end of month calculation
       const startOfMonth = new Date(
         now.getFullYear(),
         now.getMonth(),
@@ -39,188 +55,324 @@ export default function DashboardScreen() {
       setSummary(finData);
       setAccSummary(accData);
       setRecentTransactions(txData || []);
-    } catch (error: any) {
-      if (error.response?.status !== 401) {
-        console.error(error);
-      }
-      // If unauthorized, login redirection is handled in api.ts interceptor
+    } catch (error) {
+      console.error(error);
     } finally {
-      if (loading) {
-        setLoading(false);
-      }
+      setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, []),
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
     loadData();
   }, []);
 
+  const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "USD",
+    }).format(amount);
+  };
+
+  const getAccentColor = () => Colors[colorScheme].tint;
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chart.pie.fill"
-          style={styles.headerImage}
-        />
-      }
-    >
-      <ThemedView style={styles.header}>
-        <ThemedText type="title">Dashboard</ThemedText>
-      </ThemedView>
+    <SafeAreaView style={styles.safeArea}>
+      <ThemedView style={styles.container}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={getAccentColor()}
+            />
+          }
+        >
+          <View style={styles.header}>
+            <ThemedText type="title">Dashboard</ThemedText>
+          </View>
 
-      {loading && !refreshing ? (
-        <ActivityIndicator size="large" style={{ marginTop: 20 }} />
-      ) : (
-        <ThemedView style={styles.content}>
-          {/* Financial Summary */}
-          <ThemedView style={styles.card}>
-            <ThemedText type="subtitle">This Month</ThemedText>
-            <ThemedView style={styles.summaryRow}>
-              <ThemedView style={styles.summaryItem}>
-                <ThemedText style={styles.label}>Income</ThemedText>
-                <ThemedText style={[styles.amount, { color: "#4caf50" }]}>
-                  {summary?.currency}{" "}
-                  {summary?.totalIncome?.toFixed(2) || "0.00"}
-                </ThemedText>
-              </ThemedView>
-              <ThemedView style={styles.summaryItem}>
-                <ThemedText style={styles.label}>Expenses</ThemedText>
-                <ThemedText style={[styles.amount, { color: "#f44336" }]}>
-                  {summary?.currency}{" "}
-                  {summary?.totalExpenses?.toFixed(2) || "0.00"}
-                </ThemedText>
-              </ThemedView>
-            </ThemedView>
-            <ThemedView
-              style={[
-                styles.summaryRow,
-                {
-                  marginTop: 10,
-                  paddingTop: 10,
-                  borderTopWidth: 1,
-                  borderColor: "#eee",
-                },
-              ]}
-            >
-              <ThemedText type="defaultSemiBold">Net Balance</ThemedText>
-              <ThemedText
-                type="defaultSemiBold"
-                style={{
-                  color:
-                    (summary?.netBalance || 0) >= 0 ? "#4caf50" : "#f44336",
-                }}
-              >
-                {summary?.currency} {summary?.netBalance?.toFixed(2) || "0.00"}
-              </ThemedText>
-            </ThemedView>
-          </ThemedView>
-
-          {/* Account Summary */}
-          <ThemedView style={styles.card}>
-            <ThemedText type="subtitle">Total Balance</ThemedText>
-            <ThemedText type="title" style={{ marginTop: 5 }}>
-              {accSummary?.currency}{" "}
-              {accSummary?.totalBalance?.toFixed(2) || "0.00"}
-            </ThemedText>
-            <ThemedText style={{ fontSize: 12, color: "#666" }}>
-              Across {accSummary?.activeAccountsCount} active accounts
-            </ThemedText>
-          </ThemedView>
-
-          {/* Recent Transactions */}
-          <ThemedView style={styles.sectionHeader}>
-            <ThemedText type="subtitle">Recent Activity</ThemedText>
-          </ThemedView>
-
-          {recentTransactions.map((tx) => (
-            <ThemedView key={tx.id} style={styles.transactionCard}>
-              <ThemedView style={{ flex: 1 }}>
-                <ThemedText type="defaultSemiBold">
-                  {tx.categoryName}
-                </ThemedText>
-                <ThemedText style={{ fontSize: 12 }}>
-                  {tx.accountName} • {new Date(tx.date).toLocaleDateString()}
-                </ThemedText>
-                {tx.description ? (
-                  <ThemedText style={{ fontSize: 12, fontStyle: "italic" }}>
-                    {tx.description}
+          {loading && !refreshing && !summary ? (
+            <ActivityIndicator
+              size="large"
+              color={getAccentColor()}
+              style={styles.loader}
+            />
+          ) : (
+            <View style={styles.contentGap}>
+              {/* Spending Overview Placeholder */}
+              <GlassCard variant="elite" style={styles.chartCard}>
+                <View>
+                  <ThemedText type="subtitle" style={styles.chartTitle}>
+                    Spending Overview
                   </ThemedText>
-                ) : null}
-              </ThemedView>
-              <ThemedText type="defaultSemiBold" style={{ color: "#f44336" }}>
-                - {tx.currency} {tx.amount.toFixed(2)}
-              </ThemedText>
-            </ThemedView>
-          ))}
+                  <ThemedText style={styles.chartSubtitle}>
+                    DAILY INDICATOR
+                  </ThemedText>
+                </View>
 
-          {recentTransactions.length === 0 && (
-            <ThemedText
-              style={{ textAlign: "center", marginTop: 10, opacity: 0.6 }}
-            >
-              No recent transactions.
-            </ThemedText>
+                <View style={styles.chartBars}>
+                  {[40, 70, 45, 90, 65, 80, 55, 95].map((h, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.bar,
+                        { height: `${h}%`, backgroundColor: getAccentColor() },
+                      ]}
+                    />
+                  ))}
+                </View>
+              </GlassCard>
+
+              {/* Current Balance - Accent Card */}
+              <View
+                style={[
+                  styles.balanceCard,
+                  { backgroundColor: getAccentColor() },
+                ]}
+              >
+                <ThemedText style={styles.balanceLabel}>
+                  CURRENT BALANCE
+                </ThemedText>
+                <ThemedText style={styles.balanceValue}>
+                  {formatCurrency(
+                    accSummary?.totalBalance || 0,
+                    accSummary?.currency || "USD",
+                  )}
+                </ThemedText>
+                <ThemedText style={styles.balanceSub}>
+                  Across {accSummary?.activeAccountsCount || 0} accounts
+                </ThemedText>
+              </View>
+
+              {/* Income / Expense Grid */}
+              <View style={styles.row}>
+                <GlassCard style={styles.summaryCard}>
+                  <ThemedText style={styles.summaryLabel}>Income</ThemedText>
+                  <ThemedText
+                    style={[styles.summaryValue, { color: "#4caf50" }]}
+                  >
+                    {formatCurrency(
+                      summary?.totalIncome || 0,
+                      summary?.currency || "USD",
+                    )}
+                  </ThemedText>
+                </GlassCard>
+                <GlassCard style={styles.summaryCard}>
+                  <ThemedText style={styles.summaryLabel}>Expenses</ThemedText>
+                  <ThemedText
+                    style={[styles.summaryValue, { color: "#f44336" }]}
+                  >
+                    {formatCurrency(
+                      summary?.totalExpenses || 0,
+                      summary?.currency || "USD",
+                    )}
+                  </ThemedText>
+                </GlassCard>
+              </View>
+
+              {/* Recent Transactions */}
+              <View style={styles.section}>
+                <ThemedText type="subtitle">Recent Transactions</ThemedText>
+                <View style={styles.transactionsList}>
+                  {recentTransactions.map((tx) => (
+                    <GlassCard key={tx.id} style={styles.transactionRow}>
+                      <View style={styles.transactionInfo}>
+                        <ThemedText type="defaultSemiBold">
+                          {tx.description}
+                        </ThemedText>
+                        <ThemedText style={styles.transactionDate}>
+                          {new Date(tx.date).toLocaleDateString()}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.transactionAmount}>
+                        <ThemedText
+                          type="defaultSemiBold"
+                          style={{ color: "#f44336" }}
+                        >
+                          - {formatCurrency(tx.amount, tx.currency)}
+                        </ThemedText>
+                        <ThemedText style={styles.categoryTag}>
+                          {tx.categoryName}
+                        </ThemedText>
+                      </View>
+                    </GlassCard>
+                  ))}
+                  {recentTransactions.length === 0 && (
+                    <ThemedText style={styles.emptyText}>
+                      No recent transactions
+                    </ThemedText>
+                  )}
+                </View>
+              </View>
+            </View>
           )}
-        </ThemedView>
-      )}
-    </ParallaxScrollView>
+        </ScrollView>
+
+        {/* Floating Action Button */}
+        <Link href="/modal" asChild>
+          <Pressable
+            style={[styles.fab, { backgroundColor: getAccentColor() }]}
+          >
+            <IconSymbol name="plus" size={28} color="#fff" />
+          </Pressable>
+        </Link>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: "#808080",
-    bottom: -90,
-    left: -35,
-    position: "absolute",
-  },
-  header: {
-    marginBottom: 10,
-  },
-  content: {
-    gap: 16,
-  },
-  card: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "#fff", // Ideally use themed color
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  summaryItem: {
+  safeArea: {
     flex: 1,
   },
-  label: {
-    fontSize: 12,
-    opacity: 0.6,
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  header: {
+    marginBottom: 20,
+  },
+  contentGap: {
+    gap: 20,
+  },
+  loader: {
+    marginTop: 50,
+  },
+  chartCard: {
+    height: 300,
+    justifyContent: "space-between",
+  },
+  chartTitle: {
     marginBottom: 4,
   },
-  amount: {
-    fontSize: 16,
-    fontWeight: "600",
+  chartSubtitle: {
+    fontSize: 10,
+    fontWeight: "900",
+    opacity: 0.5,
+    letterSpacing: 1,
   },
-  sectionHeader: {
-    marginTop: 8,
-    marginBottom: -8,
+  chartBars: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    height: 150,
+    gap: 8,
   },
-  transactionCard: {
+  bar: {
+    flex: 1,
+    borderTopLeftRadius: 50,
+    borderTopRightRadius: 50,
+    opacity: 0.3,
+  },
+  balanceCard: {
+    borderRadius: 40,
+    padding: 30,
+    shadowColor: "#9c7cf4",
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  balanceLabel: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    marginBottom: 5,
+  },
+  balanceValue: {
+    color: "#fff", // Always white on the purple card
+    fontSize: 32,
+    fontWeight: "900",
+    letterSpacing: -1,
+  },
+  balanceSub: {
+    color: "rgba(255,255,255,0.5)",
+    marginTop: 5,
+    fontSize: 12,
+  },
+  row: {
+    flexDirection: "row",
+    gap: 15,
+  },
+  summaryCard: {
+    flex: 1,
+    padding: 20,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 5,
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  section: {
+    marginTop: 10,
+    gap: 15,
+  },
+  transactionsList: {
+    gap: 12,
+  },
+  transactionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 12,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#eee",
+    paddingVertical: 16,
+    borderRadius: 24,
+  },
+  transactionInfo: {
+    gap: 4,
+  },
+  transactionDate: {
+    fontSize: 12,
+    opacity: 0.5,
+  },
+  transactionAmount: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  categoryTag: {
+    fontSize: 10,
+    opacity: 0.6,
+    textTransform: "uppercase",
+  },
+  emptyText: {
+    opacity: 0.5,
+    textAlign: "center",
+    marginTop: 20,
+  },
+  fab: {
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
 });
