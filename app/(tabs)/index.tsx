@@ -39,11 +39,15 @@ export default function DashboardScreen() {
       setSummary(finData);
       setAccSummary(accData);
       setRecentTransactions(txData || []);
-    } catch (error) {
-      console.error(error);
-      // If unauthorized, login redirection is handled in api.ts interceptor for now
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        console.error(error);
+      }
+      // If unauthorized, login redirection is handled in api.ts interceptor
     } finally {
-      setLoading(false);
+      if (loading) {
+        setLoading(false);
+      }
       setRefreshing(false);
     }
   };

@@ -13,6 +13,12 @@ const api = axios.create({
   },
 });
 
+let onUnauthorizedCallback: (() => void) | null = null;
+
+export const setUnauthorizedCallback = (callback: () => void) => {
+  onUnauthorizedCallback = callback;
+};
+
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const token = await getToken();
@@ -30,10 +36,12 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
-      await removeToken();
-      // TODO: Navigate to login screen when created
-      console.warn("Unauthorized - redirecting to login");
-      // router.replace('/login');
+      if (onUnauthorizedCallback) {
+        onUnauthorizedCallback();
+      } else {
+        await removeToken();
+        console.warn("Unauthorized - no callback registered, token removed");
+      }
     }
     return Promise.reject(error);
   },

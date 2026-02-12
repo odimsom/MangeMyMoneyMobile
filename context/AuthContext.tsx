@@ -1,6 +1,6 @@
+import { setUnauthorizedCallback } from "@/services/api";
 import { authService } from "@/services/authService";
 import { LoginRequest, RegisterRequest, User } from "@/types/auth";
-import { useRouter, useSegments } from "expo-router";
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
@@ -20,8 +20,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const segments = useSegments();
-  const router = useRouter();
+
+  const logout = async () => {
+    await authService.logout();
+    setUser(null);
+  };
+
+  useEffect(() => {
+    setUnauthorizedCallback(logout);
+    return () => setUnauthorizedCallback(() => {});
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -39,21 +47,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     initAuth();
   }, []);
 
-  // Protected Routes Logic
-  useEffect(() => {
-    if (isLoading) return;
-
-    const inAuthGroup = segments[0] === "(tabs)";
-
-    if (!user && inAuthGroup) {
-      // Redirect to the login page if not authenticated
-      router.replace("/login");
-    } else if (user && segments[0] === "login") {
-      // Redirect to the home page if already authenticated
-      router.replace("/(tabs)");
-    }
-  }, [user, segments, isLoading, router]);
-
   const login = async (credentials: LoginRequest) => {
     const response = await authService.login(credentials);
     setUser(response.user);
@@ -62,11 +55,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const register = async (data: RegisterRequest) => {
     const response = await authService.register(data);
     setUser(response.user);
-  };
-
-  const logout = async () => {
-    await authService.logout();
-    setUser(null);
   };
 
   return (
